@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+ <mapper namespace="com.koreait.sboard.board.BoardMapper">
+ 
+ 	<insert id="insBoard" useGeneratedKeys="true" keyProperty="i_board">
+		INSERT INTO t_board
+		(typ, seq, title, ctnt, i_user)
+		SELECT #{typ}, IFNULL(MAX(seq), 0) + 1, #{title}, #{ctnt}, #{i_user} FROM t_board
+		WHERE typ = #{typ}
+	</insert>
+	
+	<update id="updateBoard" useGeneratedKeys="true" keyProperty="i_board">
+		UPDATE t_board 
+		SET title = #{title} 
+		, ctnt = #{ctnt} 
+		WHERE i_board = #{i_board} 
+		AND i_user = #{i_user}
+	</update>
+	
+	<delete id="delBoard" >
+		DELETE FROM t_board
+		WHERE i_board = #{i_board} AND i_user = #{i_user}
+	</delete>
+  
+	<select id="selBoardList" resultType="BoardDomain">
+  		SELECT A.i_board, A.seq, A.title, A.i_user,A.r_dt, A.hits, B.i_user, 
+			ifnull(B.nm, '탈퇴회원') as nm, 
+			B.profile_img, ifnull(C.favorite_cnt, 0) as favorite_cnt 
+			FROM t_board A 
+			left join t_user B 
+			ON A.i_user = B.i_user 
+			left join ( 
+			select i_board, count(i_board) as favorite_cnt 
+			from t_board_favorite 
+			group by i_board 
+			) C 
+			ON A.i_board = C.i_board 
+			where typ = #{typ} 
+			order by seq desc
+	</select>	
+  
+  <select id="selBoard" resultType="BoardDomain">
+	SELECT A.i_board, A.seq, A.title, A.i_user, A.ctnt ,A.r_dt, A.hits, A.typ, 
+	B.i_user, ifnull(B.nm, '탈퇴회원') as nm, B.profile_img, 
+	ifnull(C.favorite_cnt, 0) as favorite_cnt, 
+	CASE WHEN D.i_board IS NULL THEN 0 ELSE 1 END AS is_favorite 
+	FROM t_board A 
+	left join t_user B 
+	ON A.i_user = B.i_user 
+	left join ( 
+	select i_board, count(i_board) as favorite_cnt 
+	from t_board_favorite 
+	group by i_board 
+	) C 
+	ON A.i_board = C.i_board 
+	LEFT JOIN t_board_favorite D 
+	ON A.i_board = D.i_board 
+	AND D.i_user = #{i_user} 
+	where A.i_board = #{i_board} 
+  </select>
+ 
+ 
+ 
+ </mapper>
